@@ -11,12 +11,10 @@ def udp_client(port):
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     server_address = ('<broadcast>', port)
-
-    while True:
-        header = "endpoint"
-        client_socket.sendto(header.encode('utf-8'), server_address)
-        response, _ = client_socket.recvfrom(1024)
-        print('Server response: "{}"'.format(response.decode('utf-8')))
+    header = "endpoint"
+    client_socket.sendto(header.encode('utf-8'), server_address)
+    response, _ = client_socket.recvfrom(1024)
+    print('Server response: "{}"'.format(response.decode('utf-8')))
 
 
 if __name__ == "__main__":
