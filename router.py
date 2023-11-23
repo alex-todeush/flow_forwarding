@@ -21,14 +21,14 @@ def print_forwarding_table(table):
     for destination, next_hop in table.items():
         print("{:<15} {:<15}".format(destination, next_hop))
 
-def router(port):
+def router(name):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     my_ips = get_ip_addresses()
     my_broadcasts = [get_broadcast_address(ip) for ip in my_ips]
 
-    server_address = ('', port)
+    server_address = ('', 54321)
     server_socket.bind(server_address)
 
     print(f'UDP server is listening on {my_ips}')
@@ -44,7 +44,7 @@ def router(port):
         current_time = time.time()
         source_ip, device_name, operation, goal_destination, origin, body = data.decode().split(',')
 
-        if source_ip in last_seen_timestamps and current_time - last_seen_timestamps[source_ip] <= 2:
+        if operation == "request" and source_ip in last_seen_timestamps and current_time - last_seen_timestamps[source_ip] <= 2:
             # print(f"Ignoring message from {source_ip}. Already seen in the last 2 seconds.")
             pass
         else:
@@ -55,23 +55,23 @@ def router(port):
 
             if goal_destination in device_list:
                 # Send confirmation
-                header = f"{my_ip_address},router,confirmation,{origin},{origin},{body}"
-                server_socket.sendto(header.encode(), (client_address[0], port))
+                header = f"{my_ip_address},{name},confirmation,{origin},{my_ip_address},{body}"
+                server_socket.sendto(header.encode(), (client_address[0], 54321))
                 # Forward message
                 header = f"{my_ip_address},router,forward,{goal_destination},{origin},{body}"
-                server_socket.sendto(header.encode(), (device_list[goal_destination], port))
+                server_socket.sendto(header.encode(), (device_list[goal_destination], 54321))
             else:
                 if source_ip != my_ip_address:
                     for ip in my_broadcasts:
                         header = f"{my_ip_address},router,request,{goal_destination},{origin},{body}"
-                        broadcast_address = (str(ip), port)
+                        broadcast_address = (str(ip), 54321)
                         server_socket.sendto(header.encode(), broadcast_address)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print('Usage: python3 server.py <port>')
+        print('Usage: python3 server.py <name>')
         sys.exit(1)
 
-    port = int(sys.argv[1])
-    router(port)
+    name = sys.argv[1]
+    router(name)
