@@ -34,40 +34,39 @@ def router(port):
     print(f'UDP server is listening on {my_ips}')
 
     forwarding_table = {}
-    device_list = set()
-    last_seen_timestamps = {} 
+    device_list = {}
+    last_seen_timestamps = {}
 
     while True:
         data, client_address = server_socket.recvfrom(1024)
         print(f'Received message: "{data.decode()}" from {client_address}')
 
         current_time = time.time()
-        source_ip, source_type, operation, goal_destination, origin, body = data.decode().split(',')
+        source_ip, device_name, operation, goal_destination, origin, body = data.decode().split(',')
 
         if source_ip in last_seen_timestamps and current_time - last_seen_timestamps[source_ip] <= 2:
-            #print(f"Ignoring message from {source_ip}. Already seen in the last 2 seconds.")
+            # print(f"Ignoring message from {source_ip}. Already seen in the last 2 seconds.")
             pass
         else:
-            # Update forwarding table with source information
             forwarding_table[source_ip] = client_address[0]
             last_seen_timestamps[source_ip] = current_time
-            device_list.add(source_ip)
+            device_list[device_name] = source_ip
             print_forwarding_table(forwarding_table)
 
-            # Check if the goal destination is in the forwarding table
             if goal_destination in device_list:
-                #Send confirmation
+                # Send confirmation
                 header = f"{my_ip_address},router,confirmation,{origin},{origin},{body}"
                 server_socket.sendto(header.encode(), (client_address[0], port))
-                #Forward message
+                # Forward message
                 header = f"{my_ip_address},router,forward,{goal_destination},{origin},{body}"
-                server_socket.sendto(header.encode(), (goal_destination, port))
+                server_socket.sendto(header.encode(), (device_list[goal_destination], port))
             else:
                 if source_ip != my_ip_address:
                     for ip in my_broadcasts:
                         header = f"{my_ip_address},router,request,{goal_destination},{origin},{body}"
                         broadcast_address = (str(ip), port)
                         server_socket.sendto(header.encode(), broadcast_address)
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
