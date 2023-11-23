@@ -3,11 +3,11 @@ import sys
 import ipaddress
 import time
 
-def get_ip_addresses():
-    return set([i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None)])
-
 host_name = socket.gethostname()
 my_ip_address = socket.gethostbyname(host_name)
+
+def get_ip_addresses():
+    return set([i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None)])
 
 def get_broadcast_address(ip_address):
     subnet_mask = "255.255.255.0"
@@ -31,9 +31,10 @@ def router(port):
     server_address = ('', port)
     server_socket.bind(server_address)
 
-    print(f'UDP server is listening on {my_ip_address}')
+    print(f'UDP server is listening on {my_ips}')
 
     forwarding_table = {}
+    device_list = set()
     last_seen_timestamps = {} 
 
     while True:
@@ -41,25 +42,30 @@ def router(port):
         print(f'Received message: "{data.decode()}" from {client_address}')
 
         current_time = time.time()
-        source_ip, source_type, operation, goal_destination, placeholder = data.decode().split(',')
+        source_ip, source_type, operation, goal_destination, origin, body = data.decode().split(',')
 
-        if source_ip in last_seen_timestamps and current_time - last_seen_timestamps[source_ip] <= 30:
-            print(f"Ignoring message from {source_ip}. Already seen in the last 30 seconds.")
+        if source_ip in last_seen_timestamps and current_time - last_seen_timestamps[source_ip] <= 2:
+            #print(f"Ignoring message from {source_ip}. Already seen in the last 2 seconds.")
+            pass
         else:
             # Update forwarding table with source information
             forwarding_table[source_ip] = client_address[0]
             last_seen_timestamps[source_ip] = current_time
+            device_list.add(source_ip)
             print_forwarding_table(forwarding_table)
 
             # Check if the goal destination is in the forwarding table
-            if goal_destination in forwarding_table:
-                next_hop = forwarding_table[goal_destination]
-                header = f"{my_ip_address},router,response,{goal_destination},{next_hop}"
+            if goal_destination in device_list:
+                #Send confirmation
+                header = f"{my_ip_address},router,confirmation,{client_address[0]},{origin},{body}"
                 server_socket.sendto(header.encode(), (client_address[0], port))
+                #Forward message
+                header = f"{my_ip_address},router,forward,{goal_destination},{origin},{body}"
+                server_socket.sendto(header.encode(), (goal_destination, port))
             else:
                 if source_ip != my_ip_address:
                     for ip in my_broadcasts:
-                        header = f"{my_ip_address},router,inquire,{goal_destination},placeholder"
+                        header = f"{my_ip_address},router,request,{goal_destination},{origin},{body}"
                         broadcast_address = (str(ip), port)
                         server_socket.sendto(header.encode(), broadcast_address)
 
