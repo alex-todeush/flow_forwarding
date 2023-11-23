@@ -57,7 +57,7 @@ def router(port):
             # Check if the goal destination is in the forwarding table
             if goal_destination in device_list:
                 #Send confirmation
-                header = f"{my_ip_address},router,confirmation,{client_address[0]},{origin},{body}"
+                header = f"{my_ip_address},router,confirmation,{origin},{origin},{body}"
                 server_socket.sendto(header.encode(), (client_address[0], port))
                 #Forward message
                 header = f"{my_ip_address},router,forward,{goal_destination},{origin},{body}"

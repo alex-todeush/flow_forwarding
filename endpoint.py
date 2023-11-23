@@ -14,8 +14,8 @@ def udp_client(port, goal_destination):
     # HEADER FORMAT (source_IP, source_type, operation, goal_destination, origin_IP, body)
     header = f"{my_ip_address},endpoint,request,{goal_destination},{my_ip_address},{message_body}"
     client_socket.sendto(header.encode(), broadcast_address)
-    response, _ = client_socket.recvfrom(1024)
-    print(f'Server response: "{response.decode()}"')
+    #response, _ = client_socket.recvfrom(1024)
+    #print(f'Server response: "{response.decode()}"')
 
 def udp_server(port):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -24,7 +24,13 @@ def udp_server(port):
     while True:
         data, addr = server_socket.recvfrom(1024)
         source_ip, source_type, operation, goal_destination, origin, body = data.decode().split(',')
-        print(f"Received UDP packet from {origin}: {body}")
+        if(origin == my_ip_address):
+            pass
+        else:
+            if(operation == "confirmation"):
+                print(f"acknowledgement for: {body}")
+            elif(operation == "forward"):
+                print(f"Received UDP packet from {origin}: {body}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
