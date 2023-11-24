@@ -42,14 +42,14 @@ def router(name):
         print(f'Received message: "{data.decode()}" from {client_address}')
 
         current_time = time.time()
-        source_ip, device_name, operation, goal_destination, origin, body = data.decode().split(',')
+        source_ip, device_name, operation, goal_destination, origin, body = data.decode().split(',',5)
 
-        if operation == "REQ" and source_ip in last_seen_timestamps and current_time - last_seen_timestamps[source_ip] <= 2:
+        if operation == "REQ" and str(goal_destination) + str(body) in last_seen_timestamps and current_time - last_seen_timestamps[str(goal_destination) + str(body)] <= 2:
             # print(f"Ignoring message from {source_ip}. Already seen in the last 2 seconds.")
             pass
         else:
             forwarding_table[source_ip] = client_address[0]
-            last_seen_timestamps[source_ip] = current_time
+            last_seen_timestamps[str(goal_destination) + str(body)] = current_time
             device_list[device_name] = source_ip
             print_forwarding_table(forwarding_table)
 
@@ -66,7 +66,6 @@ def router(name):
                         header = f"{my_ip_address},{name},REQ,{goal_destination},{origin},{body}"
                         broadcast_address = (str(ip), 54321)
                         server_socket.sendto(header.encode(), broadcast_address)
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
