@@ -17,7 +17,7 @@ def sender(name, goal_destination):
     broadcast_address = ('<broadcast>', 54321)
     message_body = f"Hello from {name}:{my_ip_address}"
     # HEADER FORMAT (source_IP, device_name, operation, goal_destination, origin_IP, body)
-    header = f"{my_ip_address},{name},request,{goal_destination},{my_ip_address},{message_body}"
+    header = f"{my_ip_address},{name},REQ,{goal_destination},{my_ip_address},{message_body}"
     client_socket.sendto(header.encode(), broadcast_address)
 
     start_timer(hash_message_body(message_body))
@@ -33,10 +33,10 @@ def receiver():
         if origin == my_ip_address:
             pass
         else:
-            if operation == "confirmation":
+            if operation == "ACK":
                 print(f"Acknowledgement for: {body}")
                 cancel_timer(hash_message_body(body))
-            elif operation == "forward":
+            elif operation == "FWD":
                 print(f"Received UDP packet from {origin}: {body}")
 
 def hash_message_body(message_body):
@@ -52,7 +52,7 @@ def cancel_timer(message_body_hash):
         del message_timers[message_body_hash]
 
 def timeout_handler(message_body_hash):
-    print(f"No confirmation received for message with hash: {message_body_hash} within 5 seconds.")
+    print(f"No acknowledgment received for message with hash: {message_body_hash} within 5 seconds.")
 
 
 if __name__ == "__main__":
